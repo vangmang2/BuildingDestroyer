@@ -10,6 +10,7 @@ public class Penguin : MonoBehaviour
     [SerializeField] float slidingTime, velocity;
     [SerializeField] Vector3 homePos;
     [SerializeField] AnimationCurve risingCurve, fallingCurve;
+    [SerializeField] Sword sword;
     bool isSliding, isTowardToBuildings;
 
     float t, currVelocity;
@@ -32,6 +33,11 @@ public class Penguin : MonoBehaviour
             t = 0f;
             currVelocity = velocity;
         }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            sword.Swing();
+        }
     }
 
     void Slide()
@@ -42,10 +48,10 @@ public class Penguin : MonoBehaviour
 
             if (isTowardToBuildings)
             {
-                currVelocity = velocity * risingCurve.Evaluate(t * 2f / slidingTime);                ;
+                currVelocity = velocity * risingCurve.Evaluate(t / slidingTime);                ;
                 transform.position += Vector3.right * currVelocity * Time.deltaTime;
 
-                if (t >= slidingTime * 0.5f)
+                if (t >= slidingTime)
                 {
                     t = 0f;
                     isTowardToBuildings = false;
@@ -54,7 +60,7 @@ public class Penguin : MonoBehaviour
             }
             else
             {
-                currVelocity = velocity * fallingCurve.Evaluate(t * 2f / slidingTime);
+                currVelocity = velocity * fallingCurve.Evaluate(t / slidingTime);
                 transform.position -= Vector3.right * currVelocity * Time.deltaTime;
                 if (transform.position.x <= homePos.x)
                 {
@@ -64,6 +70,5 @@ public class Penguin : MonoBehaviour
                 }
             }
         }
-
     }
 }
