@@ -4,15 +4,9 @@ using UnityEngine;
 
 public class Brick : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    public Brick SetLocalPosition(Vector3 position)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        transform.localPosition = position;
+        return this;
     }
 }

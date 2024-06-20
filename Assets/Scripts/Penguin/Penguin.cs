@@ -11,7 +11,7 @@ public class Penguin : MonoBehaviour
     [SerializeField] Animator animator;
     [SerializeField] float slidingTime, velocity;
     [SerializeField] Vector3 homePos;
-    [SerializeField] AnimationCurve risingCurve, fallingCurve;
+    [SerializeField] AnimationCurve risingCurve, fallingCurve, fallingGuardCurve;
     [SerializeField] Sword sword;
     bool isSliding, isForwardToBuilding;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
@@ -54,6 +54,7 @@ public class Penguin : MonoBehaviour
     void Swing(Brick brick)
     {
         // TODO: 블록에 데미지 입히는 로직 추가해주기
+        // 블록이 파괴되면 방어해서 떨어지는 것처럼 로직 작성
     }
 
     void Guard()
@@ -62,6 +63,8 @@ public class Penguin : MonoBehaviour
         fallingCts?.Cancel();
         falling_BulidingHitCts?.Cancel();
         ToBackward_Guard();
+
+        BrickContainer.instance.EffectedByGuard();
     }
 
     void ToForward()
@@ -119,7 +122,41 @@ public class Penguin : MonoBehaviour
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
             await UniTask.Yield(fallingCts.Token);
         }
+        SetPositionToHomePos();
+    }
 
+    // 건물과 같은 속도로 떨어져야 한다.
+    async UniTaskVoid InvokeToBackward_BuildingHit()
+    {
+        var currVelocity = BrickContainer.instance.currVelocity;
+        var t = 0f;
+
+        while (transform.position.x > homePos.x)
+        {
+            t += Time.deltaTime;
+            transform.position -= Vector3.right * currVelocity * Time.deltaTime;
+            await UniTask.Yield(falling_BulidingHitCts.Token);
+        }
+        SetPositionToHomePos();
+    }
+
+    // 방어하면 일정한 속도로 떨어져야 한다.
+    async UniTaskVoid InvokeToBackward_Guard()
+    {
+        var t = 0f;
+
+        while (transform.position.x > homePos.x)
+        {
+            t += Time.deltaTime;
+            var currVelocity = velocity * fallingGuardCurve.Evaluate(t / slidingTime);
+            transform.position -= Vector3.right * currVelocity * Time.deltaTime;
+            await UniTask.Yield(falling_GuardCts.Token);
+        }
+        SetPositionToHomePos();
+    }
+
+    void SetPositionToHomePos()
+    {
         if (transform.position.x <= homePos.x)
         {
             isSliding = false;
@@ -128,17 +165,6 @@ public class Penguin : MonoBehaviour
         }
     }
 
-    // 건물과 같은 속도로 떨어져야 한다.
-    async UniTaskVoid InvokeToBackward_BuildingHit()
-    {
-
-    }
-
-    // 방어하면 일정한 속도로 떨어져야 한다.
-    async UniTaskVoid InvokeToBackward_Guard()
-    {
-
-    }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
