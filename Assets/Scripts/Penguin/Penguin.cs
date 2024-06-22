@@ -6,6 +6,13 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+public struct PenguinStats
+{
+    public int damage;
+    public float slidingTime;
+    public float guardGage;
+}
+
 public class Penguin : MonoBehaviour
 {
     [SerializeField] Animator animator;
@@ -13,20 +20,57 @@ public class Penguin : MonoBehaviour
     [SerializeField] Vector3 homePos;
     [SerializeField] AnimationCurve risingCurve, fallingCurve, fallingGuardCurve;
     [SerializeField] Sword sword;
-    bool isSliding, isForwardToBuilding;
+
+    public PenguinStats stats => _stats;
+    PenguinStats _stats;
+
+    bool isSliding, isForwardToBuilding, isBuildingHit, isAlreadyFalling;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
+
+
 
     void Start()
     {
+        _stats = new PenguinStats();
+        _stats.damage = 10;
+        _stats.slidingTime = slidingTime;
+        _stats.guardGage = 100;
+
         sword.SetActionOnSwing(Swing)
              .SetActionOnGuard(Guard);
+    }
+
+    public Penguin IncreaseDamage(int amount)
+    {
+        _stats.damage += amount;
+        return this;
+    }
+
+    public Penguin IncreaseSlidingTime(float amount)
+    {
+        _stats.slidingTime += amount;
+        return this;
+    }
+
+    public Penguin IncreaseGuardGage(int amount)
+    {
+        _stats.guardGage += amount;
+        return this;
     }
 
     void Update()
     {
         GetInput();
+
+        if (BrickContainer.instance.currPosition.x <= transform.position.x)
+        {
+            var targetVec = transform.position;
+            targetVec.x = Mathf.Max(-4.8f, BrickContainer.instance.currPosition.x);
+            transform.position = targetVec;
+        }
     }
 
+    // TODO:Penguin Input Manager등으로 빼주면 좋을 듯?
     void GetInput()
     {
         if (Input.GetKeyDown(KeyCode.Space))
@@ -51,10 +95,11 @@ public class Penguin : MonoBehaviour
         }
     }
 
+    // TODO: 블록에 데미지 입히는 로직 추가해주기
+    // 블록이 파괴되면 방어해서 떨어지는 것처럼 로직 작성
     void Swing(Brick brick)
     {
-        // TODO: 블록에 데미지 입히는 로직 추가해주기
-        // 블록이 파괴되면 방어해서 떨어지는 것처럼 로직 작성
+        brick.GetDamaged(stats.damage);
     }
 
     void Guard()
@@ -100,10 +145,10 @@ public class Penguin : MonoBehaviour
     async UniTaskVoid InvokeToForward()
     {
         var t = 0f;
-        while (t < slidingTime)
+        while (t < stats.slidingTime)
         {
             t += Time.deltaTime;
-            var currVelocity = velocity * risingCurve.Evaluate(t / slidingTime);
+            var currVelocity = velocity * risingCurve.Evaluate(t / stats.slidingTime);
             transform.position += Vector3.right * currVelocity * Time.deltaTime;
             await UniTask.Yield(risingCts.Token);
         }
@@ -118,29 +163,31 @@ public class Penguin : MonoBehaviour
         while (transform.position.x > homePos.x)
         {
             t += Time.deltaTime;
-            var currVelocity = velocity * fallingCurve.Evaluate(t / slidingTime);
+
+            var currVelocity = velocity * fallingCurve.Evaluate(t / stats.slidingTime);
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
+
             await UniTask.Yield(fallingCts.Token);
         }
         SetPositionToHomePos();
     }
 
-    // 건물과 같은 속도로 떨어져야 한다.
     async UniTaskVoid InvokeToBackward_BuildingHit()
     {
-        var currVelocity = BrickContainer.instance.currVelocity;
         var t = 0f;
 
         while (transform.position.x > homePos.x)
         {
             t += Time.deltaTime;
+
+            var currVelocity = BrickContainer.instance.currVelocity;
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
+
             await UniTask.Yield(falling_BulidingHitCts.Token);
         }
         SetPositionToHomePos();
     }
 
-    // 방어하면 일정한 속도로 떨어져야 한다.
     async UniTaskVoid InvokeToBackward_Guard()
     {
         var t = 0f;
@@ -148,8 +195,10 @@ public class Penguin : MonoBehaviour
         while (transform.position.x > homePos.x)
         {
             t += Time.deltaTime;
-            var currVelocity = velocity * fallingGuardCurve.Evaluate(t / slidingTime);
+
+            var currVelocity = velocity * fallingGuardCurve.Evaluate(t / stats.slidingTime);
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
+
             await UniTask.Yield(falling_GuardCts.Token);
         }
         SetPositionToHomePos();
@@ -157,12 +206,10 @@ public class Penguin : MonoBehaviour
 
     void SetPositionToHomePos()
     {
-        if (transform.position.x <= homePos.x)
-        {
-            isSliding = false;
-            animator.SetBool("IsSliding", false);
-            transform.position = homePos;
-        }
+        isSliding = false;
+        isAlreadyFalling = false;
+        animator.SetBool("IsSliding", false);
+        transform.position = homePos;
     }
 
 
@@ -173,7 +220,22 @@ public class Penguin : MonoBehaviour
 
         risingCts?.Cancel();
         fallingCts?.Cancel();
+        falling_GuardCts?.Cancel();
         ToBackward_BuildingHit();
+        isBuildingHit = true;
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (isAlreadyFalling)
+            return;
+
+        isAlreadyFalling = true;
+        isBuildingHit = false;
+        isForwardToBuilding = false;
+
+        falling_BulidingHitCts?.Cancel();
+        ToBackward();
     }
 
     private void OnDestroy()
