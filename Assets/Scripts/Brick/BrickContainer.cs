@@ -13,7 +13,7 @@ using UnityEngine.EventSystems;
 // 그리고 하나깨진 만큼 다른 블록이 앞으로 당겨와짐
 public class BrickContainer : MonoBehaviour
 {
-    const int maxBrickCount = 12;
+    public const int startBrickCount = 40;
 
     [SerializeField] Vector2 startPosition, endPosition;
     [SerializeField] float gap;
@@ -25,10 +25,10 @@ public class BrickContainer : MonoBehaviour
     public float currAcceleration { get; private set; }
     public Brick currBrick => brickQueue.Peek();
 
-    bool hasFloorTouched; 
+    bool hasFloorTouched;
     int currBrickCount;
 
-    Action onFloorTouched;
+    Action onFloorTouched, onStageCleared;
     Queue<Brick> brickQueue = new Queue<Brick>();
 
     bool canMove;
@@ -37,30 +37,43 @@ public class BrickContainer : MonoBehaviour
     private void Awake()
     {
         instance = this;
-    }
-
-    private void Start()
-    {
-        canMove = true;
         var brickArr = GetComponentsInChildren<Brick>();
         foreach (var brick in brickArr)
         {
             brickQueue.Enqueue(brick);
         }
-
         currVelocity = targetVelocity;
-        
+    }
+
+    public void InitBricks(int stage)
+    {
+        var i = 0;
         foreach (var brick in brickQueue)
         {
+            var targetPos = startPosition + new Vector2(gap * i, 0f);
+
             brick.SetColliderActive(false)
-                 .SetHitpoint(10)
+                 .SetHitpoint(3 + stage * 4)
+                 .SetLocalPosition(targetPos)
                  .SetActionOnDead(OnDead);
+            i++;
         }
         brickQueue.Peek().SetColliderActive(true);
     }
 
+    public void IncreaseBrickCount(int amount)
+    {
+        currBrickCount += amount;
+    }
+
     void OnDead(Brick brick)
     {
+        currBrickCount--;
+        if (currBrickCount == 0)
+            onStageCleared?.Invoke();
+        if (currBrickCount <= 0)
+            return;
+
         brick.InstantiateBrickBrokenParticle();
         transform.position += Vector3.right * gap;
         var destroyedBrick = brickQueue.Dequeue();
@@ -70,6 +83,11 @@ public class BrickContainer : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             var targetBrick = brickQueue.ElementAt(i);
+            if (i > currBrickCount)
+            {
+                continue;
+            }
+
             var targetPos = startPosition + new Vector2(gap * i, 0f);
             targetBrick.SetColliderActive(false)
                        .SetHitpoint(10)
@@ -81,6 +99,12 @@ public class BrickContainer : MonoBehaviour
     public BrickContainer SetActionOnFloorTouched(Action callback)
     {
         onFloorTouched = callback;
+        return this;
+    }
+
+    public BrickContainer SetActionOnStageClear(Action callback)
+    {
+        onStageCleared = callback;
         return this;
     }
 
@@ -136,8 +160,15 @@ public class BrickContainer : MonoBehaviour
 
     private void Update()
     {
+        if (currBrickCount <= 0)
+        {
+            transform.position = new Vector3(65f, 0f, 0f);
+            return;
+        }
+
         if (!canMove)
             return;
+
         currAcceleration = Mathf.Lerp(currAcceleration, targetAcceleration, Time.deltaTime);
         currVelocity = targetVelocity * currAcceleration;
         transform.position += Vector3.left * currVelocity * Time.deltaTime;

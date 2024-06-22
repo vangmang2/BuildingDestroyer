@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,12 +14,15 @@ public struct PenguinStats
     public int hitpoint;
     public float slidingTime;
     public float guardGage;
+    public float guardGageFactor;
     public int lethalMoveGage;
     public int lethalMoveHitCount;
 }
 
 public class Penguin : MonoBehaviour
 {
+    public static Penguin instance { get; private set; }
+
     const int maxLethalMoveGage = 100;
 
     [SerializeField] Animator animator;
@@ -32,8 +36,23 @@ public class Penguin : MonoBehaviour
     bool isSliding, isForwardToBuilding, isAlreadyFalling, isDead, isLethalMove;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
     Action<int> onHitpointChanged, onHit;
+    Action<float, float> onGuardGageChanged;
     Action<int, int> onLethalMoveGageChanged;
     Action onDead;
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    public void InitGage()
+    {
+        _stats.guardGage = 100;
+        _stats.lethalMoveGage = 0;
+
+        onGuardGageChanged?.Invoke(_stats.guardGage, 100);
+        onLethalMoveGageChanged?.Invoke(_stats.lethalMoveGage, maxLethalMoveGage);
+    }
 
     void Start()
     {
@@ -42,8 +61,9 @@ public class Penguin : MonoBehaviour
         _stats.hitpoint = 3;
         _stats.slidingTime = slidingTime;
         _stats.guardGage = 100;
+        _stats.guardGageFactor = 10;
         _stats.lethalMoveGage = 0;
-        _stats.lethalMoveHitCount = 6;
+        _stats.lethalMoveHitCount = 4;
 
         sword.SetActionOnGuard(Guard);
     }
@@ -66,6 +86,12 @@ public class Penguin : MonoBehaviour
         return this;
     }
 
+    public Penguin SetActionOnGuardGageChanged(Action<float, float> callback)
+    {
+        onGuardGageChanged = callback;
+        return this;
+    }
+
     public Penguin SetActionOnLethalMoveGageChanged(Action<int, int> callback)
     {
         onLethalMoveGageChanged = callback;
@@ -84,15 +110,21 @@ public class Penguin : MonoBehaviour
         return this;
     }
 
-    public Penguin IncreaseGuardGage(int amount)
+    public Penguin IncreaseGuardGageFactor(int amount)
     {
-        _stats.guardGage += amount;
+        _stats.guardGageFactor += amount;
         return this;
     }
 
-    public Penguin IncreaseHitpoint(int amount)
+    public Penguin IncreaseLethalMoveHitCount(int amount)
     {
-        _stats.hitpoint += amount;
+        _stats.lethalMoveHitCount += amount;
+        return this;
+    }
+
+    public Penguin SetHitpoint(int amount)
+    {
+        _stats.hitpoint = amount;
         onHitpointChanged?.Invoke(_stats.hitpoint);
         return this;
     }
@@ -119,10 +151,23 @@ public class Penguin : MonoBehaviour
             return;
 
         CheckPosition();
+        ChargeGuardGage();
 
 #if UNITY_EDITOR
         GetInput();
 #endif
+    }
+
+    float chargeCooltime;
+    void ChargeGuardGage()
+    {
+        chargeCooltime += Time.deltaTime;
+        if (chargeCooltime >= 2f)
+        {
+            _stats.guardGage += _stats.guardGageFactor * Time.deltaTime;
+            _stats.guardGage = Mathf.Min(_stats.guardGage, 100);
+            onGuardGageChanged?.Invoke(_stats.guardGage, 100);
+        }
     }
 
     void CheckPosition()
@@ -169,8 +214,8 @@ public class Penguin : MonoBehaviour
 
     void LethalMove()
     {
-        //if (_stats.lethalMoveGage < maxLethalMoveGage)
-        //    return;
+        if (_stats.lethalMoveGage < maxLethalMoveGage)
+            return;
 
         // 궁극기는 최상의 UX를 위해 사용가능 거리에 있을 때만 사용 가능하게 한다
         if (!isLethalMoveValid)
@@ -233,6 +278,14 @@ public class Penguin : MonoBehaviour
         sword.Guard();
         if (!canInteractWithBrick)
             return;
+
+        if (_stats.guardGage <= 0)
+            return;
+
+        chargeCooltime = 0f;
+        _stats.guardGage -= 40;
+        _stats.guardGage = Mathf.Max(0, _stats.guardGage);
+        onGuardGageChanged?.Invoke(_stats.guardGage, 100);
 
         risingCts?.Cancel();
         fallingCts?.Cancel();
