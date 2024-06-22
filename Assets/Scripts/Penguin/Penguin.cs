@@ -13,23 +13,27 @@ public struct PenguinStats
     public int hitpoint;
     public float slidingTime;
     public float guardGage;
+    public int lethalMoveGage;
+    public int lethalMoveHitCount;
 }
 
 public class Penguin : MonoBehaviour
 {
+    const int maxLethalMoveGage = 100;
+
     [SerializeField] Animator animator;
     [SerializeField] float slidingTime, velocity;
     [SerializeField] Vector3 homePos;
     [SerializeField] AnimationCurve risingCurve, fallingCurve, fallingGuardCurve;
     [SerializeField] Sword sword;
 
-    public PenguinStats stats => _stats;
     PenguinStats _stats;
 
-    bool isSliding, isForwardToBuilding, isAlreadyFalling, isDead;
+    bool isSliding, isForwardToBuilding, isAlreadyFalling, isDead, isLethalMove;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
-    Action<int> onHitpointChanged;
-    Action onDead, onHit;
+    Action<int> onHitpointChanged, onHit;
+    Action<int, int> onLethalMoveGageChanged;
+    Action onDead;
 
     void Start()
     {
@@ -38,6 +42,8 @@ public class Penguin : MonoBehaviour
         _stats.hitpoint = 3;
         _stats.slidingTime = slidingTime;
         _stats.guardGage = 100;
+        _stats.lethalMoveGage = 0;
+        _stats.lethalMoveHitCount = 6;
 
         sword.SetActionOnGuard(Guard);
     }
@@ -48,7 +54,7 @@ public class Penguin : MonoBehaviour
         return this;
     }
 
-    public Penguin SetActionOnHit(Action callback)
+    public Penguin SetActionOnHit(Action<int> callback)
     {
         onHit = callback;
         return this;
@@ -57,6 +63,12 @@ public class Penguin : MonoBehaviour
     public Penguin SetActionOnHitpointChanged(Action<int> callback)
     {
         onHitpointChanged = callback;
+        return this;
+    }
+
+    public Penguin SetActionOnLethalMoveGageChanged(Action<int, int> callback)
+    {
+        onLethalMoveGageChanged = callback;
         return this;
     }
 
@@ -100,11 +112,21 @@ public class Penguin : MonoBehaviour
 
     void Update()
     {
-        //if (isDead)
-        //    return;
+        if (isDead)
+            return;
 
+        if (isLethalMove)
+            return;
+
+        CheckPosition();
+
+#if UNITY_EDITOR
         GetInput();
+#endif
+    }
 
+    void CheckPosition()
+    {
         if (BrickContainer.instance.currPosition.x <= transform.position.x)
         {
             var targetVec = transform.position;
@@ -118,25 +140,22 @@ public class Penguin : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (isSliding)
-                return;
-
-            animator.SetBool("IsSliding", true);
-            isSliding = true;
-            isForwardToBuilding = true;
-            ToForward();
+            Slide();
         }
 
         if (Input.GetMouseButtonDown(0))
         {
             Swing();
-            sword.Swing();
         }
 
         if (Input.GetMouseButtonDown(1))
         {
             Guard();
-            sword.Guard();
+        }
+
+        if (Input.GetMouseButtonDown(2))
+        {
+            LethalMove();
         }
     }
 
@@ -144,19 +163,74 @@ public class Penguin : MonoBehaviour
         Mathf.Abs(BrickContainer.instance.currPosition.x - transform.position.x) <= 1.5f ||
                   BrickContainer.instance.currPosition.x < transform.position.x;
 
+    bool isLethalMoveValid =>
+        Mathf.Abs(BrickContainer.instance.currPosition.x - transform.position.x) <= 3f ||
+                  BrickContainer.instance.currPosition.x < transform.position.x;
+
+    void LethalMove()
+    {
+        //if (_stats.lethalMoveGage < maxLethalMoveGage)
+        //    return;
+
+        // 궁극기는 최상의 UX를 위해 사용가능 거리에 있을 때만 사용 가능하게 한다
+        if (!isLethalMoveValid)
+            return;
+        sword.Swing();
+        BrickContainer.instance.SetEnableMove(false);
+
+        isLethalMove = true;
+        _stats.lethalMoveGage = 0;
+        onLethalMoveGageChanged?.Invoke(_stats.lethalMoveGage, maxLethalMoveGage);
+
+        var targetPos = transform.position + FollowingCamera.instance.targetRevision + new Vector3(_stats.lethalMoveHitCount * 3.5f, 0f);
+        var duration = _stats.lethalMoveHitCount * 0.05f;
+        var delay = 0.3f;
+        FollowingCamera.instance.MoveCameraTo(targetPos, duration, delay, null);
+        BrickContainer.instance.DestroyBricks(_stats.lethalMoveHitCount, () =>
+        {
+            FollowingCamera.instance.SetEnableFollowing(true);
+            isLethalMove = false;
+            BrickContainer.instance.SetEnableMove(true);
+        });
+    }
+
+    void Slide()
+    {
+        if (isSliding)
+            return;
+
+        animator.SetBool("IsSliding", true);
+        isSliding = true;
+        isForwardToBuilding = true;
+        ToForward();
+    }
+
     void Swing()
     {
+        sword.Swing();
         if (!canInteractWithBrick)
             return;
 
-        onHit?.Invoke();
+        onHit?.Invoke(10);
         var brick = BrickContainer.instance.currBrick;
-        brick.GetDamaged(stats.damage);
+        brick.GetDamaged(_stats.damage, () =>
+        {
+            // 블록 부서지면 5점씩 게이지 차오르기
+            IncreaseLethalMoveGage();
+        });
+    }
+
+    void IncreaseLethalMoveGage()
+    {
+        _stats.lethalMoveGage += 5;
+        _stats.lethalMoveGage = Mathf.Min(_stats.lethalMoveGage, maxLethalMoveGage);
+        onLethalMoveGageChanged?.Invoke(_stats.lethalMoveGage, maxLethalMoveGage);
     }
 
 
     void Guard()
     {
+        sword.Guard();
         if (!canInteractWithBrick)
             return;
 
@@ -201,10 +275,10 @@ public class Penguin : MonoBehaviour
     async UniTaskVoid InvokeToForward()
     {
         var t = 0f;
-        while (t < stats.slidingTime)
+        while (t < _stats.slidingTime)
         {
             t += Time.deltaTime;
-            var currVelocity = velocity * risingCurve.Evaluate(t / stats.slidingTime);
+            var currVelocity = velocity * risingCurve.Evaluate(t / _stats.slidingTime);
             transform.position += Vector3.right * currVelocity * Time.deltaTime;
             await UniTask.Yield(risingCts.Token);
         }
@@ -220,7 +294,7 @@ public class Penguin : MonoBehaviour
         {
             t += Time.deltaTime;
 
-            var currVelocity = velocity * fallingCurve.Evaluate(t / stats.slidingTime);
+            var currVelocity = velocity * fallingCurve.Evaluate(t / _stats.slidingTime);
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
 
             await UniTask.Yield(fallingCts.Token);
@@ -252,7 +326,7 @@ public class Penguin : MonoBehaviour
         {
             t += Time.deltaTime;
 
-            var currVelocity = velocity * fallingGuardCurve.Evaluate(t / stats.slidingTime);
+            var currVelocity = velocity * fallingGuardCurve.Evaluate(t / _stats.slidingTime);
             transform.position -= Vector3.right * currVelocity * Time.deltaTime;
 
             await UniTask.Yield(falling_GuardCts.Token);

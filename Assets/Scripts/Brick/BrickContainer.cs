@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -30,6 +31,7 @@ public class BrickContainer : MonoBehaviour
     Action onFloorTouched;
     Queue<Brick> brickQueue = new Queue<Brick>();
 
+    bool canMove;
     public static BrickContainer instance { get; private set; }
 
     private void Awake()
@@ -39,6 +41,7 @@ public class BrickContainer : MonoBehaviour
 
     private void Start()
     {
+        canMove = true;
         var brickArr = GetComponentsInChildren<Brick>();
         foreach (var brick in brickArr)
         {
@@ -58,6 +61,7 @@ public class BrickContainer : MonoBehaviour
 
     void OnDead(Brick brick)
     {
+        brick.InstantiateBrickBrokenParticle();
         transform.position += Vector3.right * gap;
         var destroyedBrick = brickQueue.Dequeue();
         brickQueue.Enqueue(destroyedBrick);
@@ -78,6 +82,28 @@ public class BrickContainer : MonoBehaviour
     {
         onFloorTouched = callback;
         return this;
+    }
+
+    CancellationTokenSource cts;
+    public void DestroyBricks(int count, Action onComplete)
+    {
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+        InvokeDestroyBricks(count, onComplete).Forget();
+    }
+
+    async UniTaskVoid InvokeDestroyBricks(int count, Action onComplete)
+    {
+        await UniTask.Delay(TimeSpan.FromSeconds(0.3f), cancellationToken: cts.Token);
+        for (int i = 0; i < count; i++)
+        {
+            var brick = brickQueue.Peek();
+            OnDead(brick);
+            GameManager.instance.IncreaseScore(100);
+            await UniTask.Delay(TimeSpan.FromSeconds(0.05f), cancellationToken: cts.Token);
+        }
+        await UniTask.Delay(TimeSpan.FromSeconds(0.05f), cancellationToken: cts.Token);
+        onComplete?.Invoke();
     }
 
 #if UNITY_EDITOR
@@ -101,8 +127,17 @@ public class BrickContainer : MonoBehaviour
         currAcceleration = -targetAcceleration * 0.65f;
     }
 
+
+    public BrickContainer SetEnableMove(bool enable)
+    {
+        canMove = enable;
+        return this;
+    }
+
     private void Update()
     {
+        if (!canMove)
+            return;
         currAcceleration = Mathf.Lerp(currAcceleration, targetAcceleration, Time.deltaTime);
         currVelocity = targetVelocity * currAcceleration;
         transform.position += Vector3.left * currVelocity * Time.deltaTime;
@@ -120,5 +155,10 @@ public class BrickContainer : MonoBehaviour
         {
             hasFloorTouched = false;
         }
+    }
+
+    private void OnDestroy()
+    {
+        cts?.Cancel();
     }
 }

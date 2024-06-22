@@ -39,14 +39,19 @@ public class Brick : MonoBehaviour
         return this;
     }
 
-    public Brick GetDamaged(int damage)
+    public Brick GetDamaged(int damage, Action _onDead)
     {
         hitpoint -= damage;
         if (hitpoint <= 0)
         {
-            Instantiate(brickParticle, transform.position, Quaternion.identity);
             onDead?.Invoke(this);
+            _onDead?.Invoke();
         }
         return this;
+    }
+
+    public void InstantiateBrickBrokenParticle()
+    {
+        Instantiate(brickParticle, transform.position, Quaternion.identity);
     }
 }
