@@ -22,6 +22,7 @@ public class BrickContainer : MonoBehaviour
     public Vector3 currPosition => transform.position;
     public float currVelocity { get; private set; }
     public float currAcceleration { get; private set; }
+    public Brick currBrick => brickQueue.Peek();
 
     bool hasFloorTouched; 
     int currBrickCount;
@@ -48,8 +49,11 @@ public class BrickContainer : MonoBehaviour
         
         foreach (var brick in brickQueue)
         {
-            brick.SetActionOnDead(OnDead);
+            brick.SetColliderActive(false)
+                 .SetHitpoint(10)
+                 .SetActionOnDead(OnDead);
         }
+        brickQueue.Peek().SetColliderActive(true);
     }
 
     void OnDead(Brick brick)
@@ -63,8 +67,11 @@ public class BrickContainer : MonoBehaviour
         {
             var targetBrick = brickQueue.ElementAt(i);
             var targetPos = startPosition + new Vector2(gap * i, 0f);
-            targetBrick.SetLocalPosition(targetPos);
+            targetBrick.SetColliderActive(false)
+                       .SetHitpoint(10)
+                       .SetLocalPosition(targetPos);
         }
+        brickQueue.Peek().SetColliderActive(true);
     }
 
     public BrickContainer SetActionOnFloorTouched(Action callback)

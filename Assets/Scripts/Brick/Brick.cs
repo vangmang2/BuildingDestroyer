@@ -5,8 +5,21 @@ using UnityEngine;
 
 public class Brick : MonoBehaviour
 {
+    [SerializeField] ParticleSystem brickParticle;
+    BoxCollider2D boxCollider2D;
     int hitpoint;
     Action<Brick> onDead;
+
+    private void Awake()
+    {
+        boxCollider2D = GetComponent<BoxCollider2D>();
+    }
+
+    public Brick SetColliderActive(bool enable)
+    {
+        boxCollider2D.enabled = enable;
+        return this;
+    }
 
     public Brick SetActionOnDead(Action<Brick> callback)
     {
@@ -30,8 +43,10 @@ public class Brick : MonoBehaviour
     {
         hitpoint -= damage;
         if (hitpoint <= 0)
+        {
+            Instantiate(brickParticle, transform.position, Quaternion.identity);
             onDead?.Invoke(this);
-
+        }
         return this;
     }
 }

@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -9,6 +10,7 @@ using UnityEngine.UIElements;
 public struct PenguinStats
 {
     public int damage;
+    public int hitpoint;
     public float slidingTime;
     public float guardGage;
 }
@@ -24,20 +26,32 @@ public class Penguin : MonoBehaviour
     public PenguinStats stats => _stats;
     PenguinStats _stats;
 
-    bool isSliding, isForwardToBuilding, isBuildingHit, isAlreadyFalling;
+    bool isSliding, isForwardToBuilding, isAlreadyFalling, isDead;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
-
-
+    Action<int> onHitpointChanged;
+    Action onDead;
 
     void Start()
     {
         _stats = new PenguinStats();
         _stats.damage = 10;
+        _stats.hitpoint = 3;
         _stats.slidingTime = slidingTime;
         _stats.guardGage = 100;
 
-        sword.SetActionOnSwing(Swing)
-             .SetActionOnGuard(Guard);
+        sword.SetActionOnGuard(Guard);
+    }
+
+    public Penguin SetActionOnDead(Action callback)
+    {
+        onDead = callback;
+        return this;
+    }
+
+    public Penguin SetActionOnHitpointChanged(Action<int> callback)
+    {
+        onHitpointChanged = callback;
+        return this;
     }
 
     public Penguin IncreaseDamage(int amount)
@@ -58,8 +72,31 @@ public class Penguin : MonoBehaviour
         return this;
     }
 
+    public Penguin IncreaseHitpoint(int amount)
+    {
+        _stats.hitpoint += amount;
+        onHitpointChanged?.Invoke(_stats.hitpoint);
+        return this;
+    }
+
+    public Penguin DecreaseHitpoint(int amount)
+    {
+        _stats.hitpoint -= amount;
+        onHitpointChanged?.Invoke(_stats.hitpoint);
+
+        if (_stats.hitpoint <= 0)
+        {
+            isDead = true;
+            onDead?.Invoke();
+        }
+        return this;
+    }
+
     void Update()
     {
+        //if (isDead)
+        //    return;
+
         GetInput();
 
         if (BrickContainer.instance.currPosition.x <= transform.position.x)
@@ -86,24 +123,36 @@ public class Penguin : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            Swing();
             sword.Swing();
         }
 
         if (Input.GetMouseButtonDown(1))
         {
+            Guard();
             sword.Guard();
         }
     }
 
-    // TODO: 블록에 데미지 입히는 로직 추가해주기
-    // 블록이 파괴되면 방어해서 떨어지는 것처럼 로직 작성
-    void Swing(Brick brick)
+    bool canInteractWithBrick =>
+        Mathf.Abs(BrickContainer.instance.currPosition.x - transform.position.x) <= 1.5f ||
+                  BrickContainer.instance.currPosition.x < transform.position.x;
+
+    void Swing()
     {
+        if (!canInteractWithBrick)
+            return;
+        
+        var brick = BrickContainer.instance.currBrick;
         brick.GetDamaged(stats.damage);
     }
 
+
     void Guard()
     {
+        if (!canInteractWithBrick)
+            return;
+
         risingCts?.Cancel();
         fallingCts?.Cancel();
         falling_BulidingHitCts?.Cancel();
@@ -222,7 +271,6 @@ public class Penguin : MonoBehaviour
         fallingCts?.Cancel();
         falling_GuardCts?.Cancel();
         ToBackward_BuildingHit();
-        isBuildingHit = true;
     }
 
     private void OnTriggerExit2D(Collider2D collision)
@@ -231,7 +279,6 @@ public class Penguin : MonoBehaviour
             return;
 
         isAlreadyFalling = true;
-        isBuildingHit = false;
         isForwardToBuilding = false;
 
         falling_BulidingHitCts?.Cancel();
