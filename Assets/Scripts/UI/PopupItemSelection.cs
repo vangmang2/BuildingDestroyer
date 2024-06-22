@@ -24,7 +24,7 @@ public class PopupItemSelection : MonoBehaviour
                         penguin.IncreaseDamage(4);
                         break;
                     case RandomItem.increaseGuardGageFactor:
-                        penguin.IncreaseGuardGageFactor(3);
+                        penguin.IncreaseGuardGageFactor(5);
                         break;
                     case RandomItem.increaseLethalMoveHitCount:
                         penguin.IncreaseLethalMoveHitCount(1);
@@ -56,9 +56,13 @@ public class PopupItemSelection : MonoBehaviour
     {
         foreach (var shower in itemShowers)
         {
+            shower.SetScale(Vector3.zero);
+        }
+
+        foreach (var shower in itemShowers)
+        {
             var item = (RandomItem)Random.Range(0, Enum.GetNames(typeof(RandomItem)).Length);
-            shower.SetScale(Vector3.zero)
-                  .SetItemType(item)
+            shower.SetItemType(item)
                   .SetItemSprite()
                   .SetItemDescription()
                   .Appear();

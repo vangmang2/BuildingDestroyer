@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using System;
 using System.Threading;
 using UnityEngine;
 
@@ -17,9 +18,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] BrickContainer brickContainer;
     [SerializeField] Penguin penguin;
     [SerializeField] PopupItemSelection popupItemSelection;
+    [SerializeField] ParticleSystem clearedParticle;
 
     int score, stage;
-    bool canStart;
 
     private void Awake()
     {
@@ -37,7 +38,7 @@ public class GameManager : MonoBehaviour
                .SetActionOnLethalMoveGageChanged(OnLethalMoveGageChanged);
         brickContainer.SetActionOnFloorTouched(DecreasePenguinHitpoint)
                       .SetActionOnStageClear(StageClear);
-        StartNextStage();
+        StartNextStage(false, 0f);
 
         popupItemSelection.SetActionOnClickItem(() =>
         {
@@ -60,31 +61,25 @@ public class GameManager : MonoBehaviour
     void StageClear()
     {
         stage++;
-        if (stage == 10)
-        {
-            // TODO: 게임 클리어
-            return;
-        }
-
-        StartNextStage();
+        StartNextStage(true, 2f);
     }
 
     bool hasItemSelected;
     CancellationTokenSource stageCts;
 
-    void StartNextStage()
+    void StartNextStage(bool enableParticle, float delay)
     {
         stageCts?.Cancel();
         stageCts = new CancellationTokenSource();
-        InvokeStartNextStage().Forget();
+        InvokeStartNextStage(enableParticle, delay).Forget();
     }
 
-    // 1. 스테이지 클리어
-    // 2. 랜덤 보상 선택
-    // 3. 다음 스테이지 시작
-    async UniTaskVoid InvokeStartNextStage()
+    async UniTaskVoid InvokeStartNextStage(bool enableParticle, float delay)
     {
+        if (enableParticle) clearedParticle.Play();
         hasItemSelected = false;
+        await UniTask.Delay(TimeSpan.FromSeconds(delay), cancellationToken: stageCts.Token);
+
         popupItemSelection.SetActive(true);
         popupItemSelection.ShowRandomItems();
         await UniTask.WaitUntil(() => hasItemSelected, cancellationToken: stageCts.Token);

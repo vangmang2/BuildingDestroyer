@@ -61,7 +61,7 @@ public class Penguin : MonoBehaviour
         _stats.hitpoint = 3;
         _stats.slidingTime = slidingTime;
         _stats.guardGage = 100;
-        _stats.guardGageFactor = 10;
+        _stats.guardGageFactor = 15;
         _stats.lethalMoveGage = 0;
         _stats.lethalMoveHitCount = 4;
 

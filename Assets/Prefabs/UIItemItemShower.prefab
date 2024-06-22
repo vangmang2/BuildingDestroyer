@@ -132,10 +132,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spriteList:
-  - {fileID: 21300000, guid: a24a2a3eacd38a84b91960444c1bfefc, type: 3}
-  - {fileID: 21300000, guid: 87ca8b8991497394cba4f5252940c872, type: 3}
-  - {fileID: 21300000, guid: ac945756403c7954fb19e216ef0d575e, type: 3}
-  - {fileID: 21300000, guid: b029b478edf2a2d4996a68f496610f0a, type: 3}
+  - {fileID: 21300000, guid: f2f6d6ebd18da23488a29f4a2c140535, type: 3}
+  - {fileID: 21300000, guid: dd4da3a09250c05489fa59fa37a3ccbf, type: 3}
+  - {fileID: 21300000, guid: eec03e84d6513a049b14f7e43a44c0e2, type: 3}
+  - {fileID: 21300000, guid: 59d15d6ab1134824187ceece8e3c7368, type: 3}
   imgType: {fileID: 1679807655027495243}
   txtDescription: {fileID: 1004175296088765619}
 --- !u!114 &206991719439352660
