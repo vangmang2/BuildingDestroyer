@@ -29,7 +29,7 @@ public class Penguin : MonoBehaviour
     bool isSliding, isForwardToBuilding, isAlreadyFalling, isDead;
     CancellationTokenSource risingCts, fallingCts, falling_BulidingHitCts, falling_GuardCts;
     Action<int> onHitpointChanged;
-    Action onDead;
+    Action onDead, onHit;
 
     void Start()
     {
@@ -45,6 +45,12 @@ public class Penguin : MonoBehaviour
     public Penguin SetActionOnDead(Action callback)
     {
         onDead = callback;
+        return this;
+    }
+
+    public Penguin SetActionOnHit(Action callback)
+    {
+        onHit = callback;
         return this;
     }
 
@@ -142,7 +148,8 @@ public class Penguin : MonoBehaviour
     {
         if (!canInteractWithBrick)
             return;
-        
+
+        onHit?.Invoke();
         var brick = BrickContainer.instance.currBrick;
         brick.GetDamaged(stats.damage);
     }

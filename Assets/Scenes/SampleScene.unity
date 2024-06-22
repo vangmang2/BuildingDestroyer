@@ -311,6 +311,7 @@ GameObject:
   m_Component:
   - component: {fileID: 276395900}
   - component: {fileID: 276395901}
+  - component: {fileID: 276395902}
   m_Layer: 5
   m_Name: Life
   m_TagString: Untagged
@@ -366,6 +367,22 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &276395902
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 276395899}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05070ba681adcf944ad4fd5e94fe9cff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  goList:
+  - {fileID: 838731238}
+  - {fileID: 767513201}
+  - {fileID: 1876234523}
 --- !u!1 &278697055
 GameObject:
   m_ObjectHideFlags: 0
@@ -1276,7 +1293,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 99999999
+  m_Text: 0
 --- !u!222 &1050935992
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1864,7 +1881,7 @@ MonoBehaviour:
   m_BlockingObjects: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 55
+    m_Bits: 4294967295
 --- !u!114 &1743798712
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2156,6 +2173,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b15c245dfa70aa24cbcd0740c676627e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameUIManager: {fileID: 2070770800}
   brickContainer: {fileID: 1320758860}
   penguin: {fileID: 2072328061}
 --- !u!4 &1982560104
@@ -2218,6 +2236,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2070770799}
+  - component: {fileID: 2070770800}
   m_Layer: 0
   m_Name: UIManager
   m_TagString: Untagged
@@ -2240,6 +2259,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2070770800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2070770798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8aca09920f9650e44abf851c97e9bb80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifeShower: {fileID: 276395902}
+  txtScore: {fileID: 1050935991}
 --- !u!1 &2072328055
 GameObject:
   m_ObjectHideFlags: 0
@@ -2437,7 +2470,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 2072328057}
   slidingTime: 2
-  velocity: 32
+  velocity: 20
   homePos: {x: -4.8, y: -0.02, z: 0}
   risingCurve:
     serializedVersion: 2

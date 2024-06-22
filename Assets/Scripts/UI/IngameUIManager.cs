@@ -1,18 +1,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class IngameUIManager : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    [SerializeField] HUDLifeShower lifeShower;
+    [SerializeField] Text txtScore;
+
+    public void SetLife(int life)
     {
-        
+        lifeShower.SetLifeActive(life);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void SetTextScore(string text)
     {
-        
+        txtScore.text = text;
     }
 }
