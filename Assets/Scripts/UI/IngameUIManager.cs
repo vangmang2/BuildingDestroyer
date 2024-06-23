@@ -6,9 +6,14 @@ using UnityEngine.UI;
 public class IngameUIManager : MonoBehaviour
 {
     [SerializeField] HUDLifeShower lifeShower;
-    [SerializeField] Text txtScore;
+    [SerializeField] Text txtScore, txtStage;
     [SerializeField] Image imgLethalMoveFilledBar, imgGuardGageFilledBar;
     [SerializeField] GameObject goLethalMoveStress;
+
+    public void SetTextStage(string text)
+    {
+        txtStage.text = text;
+    }
 
     public void SetActiveLethalMoveStress(bool enable)
     {

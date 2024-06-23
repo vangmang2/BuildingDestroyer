@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] Penguin penguin;
     [SerializeField] PopupItemSelection popupItemSelection;
     [SerializeField] ParticleSystem clearedParticle;
+    [SerializeField] PopupGameOver popupGameOver;
 
     int score, stage;
 
@@ -84,6 +85,7 @@ public class GameManager : MonoBehaviour
         popupItemSelection.ShowRandomItems();
         await UniTask.WaitUntil(() => hasItemSelected, cancellationToken: stageCts.Token);
 
+        gameUIManager.SetTextStage($"stage {stage + 1}");
         brickContainer.InitBricks(stage);
         brickContainer.SetEnableMove(true);
         brickContainer.IncreaseBrickCount(BrickContainer.startBrickCount + stage * 20);
@@ -124,5 +126,8 @@ public class GameManager : MonoBehaviour
 
     void OnPenguinDead()
     {
+        popupGameOver.SetActive(true);
+        popupGameOver.SetTextScore(score.ToString());
+        popupGameOver.ShowPopup();
     }
 }
