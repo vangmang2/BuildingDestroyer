@@ -1,10 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using Random = System.Random;
 
 public class Brick : MonoBehaviour
 {
+    [SerializeField] List<Sprite> spriteList;
+    [SerializeField] SpriteRenderer sprUp, sprDown;
     [SerializeField] ParticleSystem brickParticle;
     BoxCollider2D boxCollider2D;
     int hitpoint;
@@ -13,6 +17,14 @@ public class Brick : MonoBehaviour
     private void Awake()
     {
         boxCollider2D = GetComponent<BoxCollider2D>();
+    }
+
+    public Brick SetRandomSprites()
+    {
+        var sprites = spriteList.OrderBy(item => Guid.NewGuid()).ToList();
+        sprUp.sprite = sprites[0];
+        sprDown.sprite = sprites[1];
+        return this;
     }
 
     public Brick SetColliderActive(bool enable)

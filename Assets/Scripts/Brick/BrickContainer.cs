@@ -55,7 +55,8 @@ public class BrickContainer : MonoBehaviour
             brick.SetColliderActive(false)
                  .SetHitpoint(3 + stage * 4)
                  .SetLocalPosition(targetPos)
-                 .SetActionOnDead(OnDead);
+                 .SetActionOnDead(OnDead)
+                 .SetRandomSprites();
             i++;
         }
         brickQueue.Peek().SetColliderActive(true);
@@ -93,6 +94,7 @@ public class BrickContainer : MonoBehaviour
                        .SetHitpoint(10)
                        .SetLocalPosition(targetPos);
         }
+        destroyedBrick.SetRandomSprites();
         brickQueue.Peek().SetColliderActive(true);
     }
 
