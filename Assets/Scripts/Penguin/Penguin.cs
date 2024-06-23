@@ -65,7 +65,7 @@ public class Penguin : MonoBehaviour
         _stats.lethalMoveGage = 0;
         _stats.lethalMoveHitCount = 4;
 
-        sword.SetActionOnGuard(Guard);
+        sword.SetActionOnGuard(OnGuard);
     }
 
     public Penguin SetActionOnDead(Action callback)
@@ -180,27 +180,26 @@ public class Penguin : MonoBehaviour
         }
     }
 
-    // TODO:Penguin Input Manager등으로 빼주면 좋을 듯?
     void GetInput()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            Slide();
+            OnSlide();
         }
 
         if (Input.GetMouseButtonDown(0))
         {
-            Swing();
+            OnSwing();
         }
 
         if (Input.GetMouseButtonDown(1))
         {
-            Guard();
+            OnGuard();
         }
 
         if (Input.GetMouseButtonDown(2))
         {
-            LethalMove();
+            OnLethalMove();
         }
     }
 
@@ -212,7 +211,7 @@ public class Penguin : MonoBehaviour
         Mathf.Abs(BrickContainer.instance.currPosition.x - transform.position.x) <= 3f ||
                   BrickContainer.instance.currPosition.x < transform.position.x;
 
-    void LethalMove()
+    public void OnLethalMove()
     {
         if (_stats.lethalMoveGage < maxLethalMoveGage)
             return;
@@ -239,7 +238,7 @@ public class Penguin : MonoBehaviour
         });
     }
 
-    void Slide()
+    public void OnSlide()
     {
         if (isSliding)
             return;
@@ -250,7 +249,7 @@ public class Penguin : MonoBehaviour
         ToForward();
     }
 
-    void Swing()
+    public void OnSwing()
     {
         sword.Swing();
         if (!canInteractWithBrick)
@@ -273,7 +272,7 @@ public class Penguin : MonoBehaviour
     }
 
 
-    void Guard()
+    public void OnGuard()
     {
         sword.Guard();
         if (!canInteractWithBrick)
