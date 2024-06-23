@@ -148,7 +148,7 @@ public class BrickContainer : MonoBehaviour
 
     public void EffectedByGuard()
     {
-        currAcceleration = -targetAcceleration * 0.65f;
+        currAcceleration = -targetAcceleration * 1.25f;
     }
 
 
